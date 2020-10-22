@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+
+def main():
+	import note_save
+	import sys
+	data = json.loads(sys.argv[1])
+	note_save.main_json(data)
+
+if __name__ == '__main__':
+	main()
