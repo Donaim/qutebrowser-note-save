@@ -70,7 +70,7 @@ def main_json(data):
 - time: `{time}`
 - [url]({url})
 - profile: `{profile}`
-- [mhtml](file://{dest_mhtml})`
+- [mhtml](file://{dest_mhtml})
 {text}''')
 
 @cmdutils.register(instance='command-dispatcher', scope='window', overwrite=True)
@@ -84,19 +84,23 @@ def browser_note(self, promptKeywords, quiet=False):
 
 	download_manager = None
 	download_dest = None
+	downs = None
 	def downloaded():
-		if download_manager:
-			return all(x.done for x in download_manager.downloads if x.basename == download_dest)
+		if download_dest:
+			basename = os.path.basename(download_dest)
+			return [x for x in downs if x.done and x.basename == basename]
 		else:
 			return True
 
 	try:
 		tab = self._current_widget()
+		downs = objreg.last_visible_window()._download_model
 		download_manager = objreg.get('webengine-download-manager')
 		download_dest = '/tmp/' + get_random_string(8) + '.html'
 		target = downloads.FileDownloadTarget(download_dest)
 		download_manager.get_mhtml(tab, target)
 	except Exception as ex:
+		downs = None
 		download_dest = None
 		download_manager = None
 		message.error(f'Could not download the page: {ex}')
@@ -121,11 +125,13 @@ def browser_note(self, promptKeywords, quiet=False):
 					message.error(f'Note subtask failed with: {ex}')
 
 			def download_timer_callback(*args, **kwargs):
-				if downloaded():
+				items = downloaded()
+				if items:
 					download_timer.stop()
+					for i in items: i.remove()
 					finish()
 
-			if download_dest:
+			if downs:
 				download_timer = None
 				download_timer = QTimer()
 				download_timer.setInterval(100)
